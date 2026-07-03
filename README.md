@@ -8,36 +8,23 @@ The notebooks keep the exploratory analysis, model comparison, plots, and featur
 python -m src.main --customer_id <ID> --top_k 5
 ```
 
-## Portfolio and Recruiter Sharing
+## Private Sharing
 
-Use these links when sharing the project with recruiters, hiring managers, or portfolio reviewers:
+This repository is private. For private-only review, invite the reviewer to the
+GitHub repository with read access, or create a ZIP archive and share it through
+a restricted file-sharing link:
 
-| Service | Best For | Link |
-| --- | --- | --- |
-| GitHub repository | Source code, tests, Dockerfile, and project structure | <https://github.com/stellacarneiro15-beep/ds_challenge_olist> |
-| GitHub notebooks | Most reliable read-only notebook review | [EDA](https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/01_descriptive_analytics.ipynb), [feature exploration](https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_delivery_feature_exploration.ipynb), [modeling](https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
-| Google Colab | Interactive notebook walkthroughs | [EDA](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/01_descriptive_analytics.ipynb), [feature exploration](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_delivery_feature_exploration.ipynb), [modeling](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
-| nbviewer | Alternate notebook preview if GitHub rendering is slow | [notebooks folder](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/tree/main/notebooks/) |
-| Kaggle | Dataset context and reproducible data source | [Olist dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) |
-
-Note: nbviewer can temporarily return a GitHub API rate-limit error. If that
-happens, use the GitHub notebook links or Colab links above.
-
-Suggested recruiter note:
-
-```text
-This repository contains an end-to-end data-science challenge using the public
-Olist Brazilian e-commerce dataset. It includes exploratory notebooks,
-purchase-time feature engineering, a late-delivery risk model, tests, Docker
-support, and a CLI for scoring customer orders.
-
-GitHub: https://github.com/stellacarneiro15-beep/ds_challenge_olist
-Modeling notebook: https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb
-Interactive Colab: https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb
+```bash
+make share-archive
 ```
 
-If a reviewer only has a few minutes, recommend starting with the README,
-then `notebooks/02_model.ipynb`, then `src/features.py` and `src/model.py`.
+The archive is written to `dist/ds_challenge_olist_private_share.zip`. Upload it
+to a private folder or restricted link, and grant access only to the intended
+reviewer.
+
+Third-party notebook viewers such as nbviewer and Colab cannot reliably open
+notebooks from this private repository unless the reviewer has authenticated
+access.
 
 ## Project Structure
 

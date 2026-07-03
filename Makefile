@@ -10,6 +10,7 @@ JUPYTER := $(VENV)/bin/jupyter
 
 DATA_DIR ?= data
 DOCKER_IMAGE ?= ds-challenge-olist
+SHARE_ARCHIVE ?= dist/ds_challenge_olist_private_share.zip
 
 # Prediction CLI parameters (make run CUSTOMER_ID=<ID> [TOP_K=5])
 CUSTOMER_ID ?=
@@ -21,7 +22,7 @@ NOTEBOOKS := \
 	notebooks/02_delivery_feature_exploration.ipynb \
 	notebooks/02_model.ipynb
 
-.PHONY: help setup notebooks docker-build docker-notebooks run predict test clean
+.PHONY: help setup notebooks docker-build docker-notebooks run predict test share-archive clean
 
 help:
 	@echo "Usage: make <target>"
@@ -33,6 +34,7 @@ help:
 	@echo "  run        Score a customer (make run CUSTOMER_ID=<ID> [TOP_K=5])"
 	@echo "  predict    Score a customer (make predict CUSTOMER_ID=<ID> [TOP_K=5])"
 	@echo "  test       Run the test suite (pytest)"
+	@echo "  share-archive  Build a private ZIP archive from the committed repo"
 	@echo "  clean      Remove venv, caches, and __pycache__"
 
 # =============================================================================
@@ -92,6 +94,17 @@ test: setup
 # =============================================================================
 # UTILITIES
 # =============================================================================
+
+share-archive:
+	@if ! git diff --quiet || ! git diff --cached --quiet; then \
+		echo "Error: commit or stash changes before building the share archive."; \
+		exit 1; \
+	fi
+	mkdir -p $(dir $(SHARE_ARCHIVE))
+	rm -f $(SHARE_ARCHIVE)
+	git archive --format=zip --output=$(SHARE_ARCHIVE) --prefix=ds_challenge_olist/ HEAD
+	@echo "Created $(SHARE_ARCHIVE)"
+	@echo "Share this ZIP through a restricted file-sharing link."
 
 clean:
 	rm -rf $(VENV) .pytest_cache .ruff_cache .mypy_cache
