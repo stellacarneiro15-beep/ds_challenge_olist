@@ -15,9 +15,13 @@ Use these links when sharing the project with recruiters, hiring managers, or po
 | Service | Best For | Link |
 | --- | --- | --- |
 | GitHub repository | Source code, tests, Dockerfile, and project structure | <https://github.com/stellacarneiro15-beep/ds_challenge_olist> |
-| nbviewer | Read-only notebook review without GitHub rendering issues | [EDA](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/01_descriptive_analytics.ipynb), [feature exploration](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_delivery_feature_exploration.ipynb), [modeling](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
-| Google Colab | Interactive notebook walkthroughs | [Open modeling notebook](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
+| GitHub notebooks | Most reliable read-only notebook review | [EDA](https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/01_descriptive_analytics.ipynb), [feature exploration](https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_delivery_feature_exploration.ipynb), [modeling](https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
+| Google Colab | Interactive notebook walkthroughs | [EDA](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/01_descriptive_analytics.ipynb), [feature exploration](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_delivery_feature_exploration.ipynb), [modeling](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
+| nbviewer | Alternate notebook preview if GitHub rendering is slow | [notebooks folder](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/tree/main/notebooks/) |
 | Kaggle | Dataset context and reproducible data source | [Olist dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) |
+
+Note: nbviewer can temporarily return a GitHub API rate-limit error. If that
+happens, use the GitHub notebook links or Colab links above.
 
 Suggested recruiter note:
 
@@ -28,7 +32,8 @@ purchase-time feature engineering, a late-delivery risk model, tests, Docker
 support, and a CLI for scoring customer orders.
 
 GitHub: https://github.com/stellacarneiro15-beep/ds_challenge_olist
-Notebook preview: https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/tree/main/notebooks/
+Modeling notebook: https://github.com/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb
+Interactive Colab: https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb
 ```
 
 If a reviewer only has a few minutes, recommend starting with the README,
