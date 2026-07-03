@@ -8,6 +8,32 @@ The notebooks keep the exploratory analysis, model comparison, plots, and featur
 python -m src.main --customer_id <ID> --top_k 5
 ```
 
+## Portfolio and Recruiter Sharing
+
+Use these links when sharing the project with recruiters, hiring managers, or portfolio reviewers:
+
+| Service | Best For | Link |
+| --- | --- | --- |
+| GitHub repository | Source code, tests, Dockerfile, and project structure | <https://github.com/stellacarneiro15-beep/ds_challenge_olist> |
+| nbviewer | Read-only notebook review without GitHub rendering issues | [EDA](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/01_descriptive_analytics.ipynb), [feature exploration](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_delivery_feature_exploration.ipynb), [modeling](https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
+| Google Colab | Interactive notebook walkthroughs | [Open modeling notebook](https://colab.research.google.com/github/stellacarneiro15-beep/ds_challenge_olist/blob/main/notebooks/02_model.ipynb) |
+| Kaggle | Dataset context and reproducible data source | [Olist dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) |
+
+Suggested recruiter note:
+
+```text
+This repository contains an end-to-end data-science challenge using the public
+Olist Brazilian e-commerce dataset. It includes exploratory notebooks,
+purchase-time feature engineering, a late-delivery risk model, tests, Docker
+support, and a CLI for scoring customer orders.
+
+GitHub: https://github.com/stellacarneiro15-beep/ds_challenge_olist
+Notebook preview: https://nbviewer.org/github/stellacarneiro15-beep/ds_challenge_olist/tree/main/notebooks/
+```
+
+If a reviewer only has a few minutes, recommend starting with the README,
+then `notebooks/02_model.ipynb`, then `src/features.py` and `src/model.py`.
+
 ## Project Structure
 
 ```text
