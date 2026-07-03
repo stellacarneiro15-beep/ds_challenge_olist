@@ -1,0 +1,66 @@
+[project]
+name = "ds-challenge-olist"
+description = "Data science challenge on the Olist Brazilian e-commerce dataset"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "ipython>=8.26.0",
+    "jupyter>=1.0.0",
+    "notebook>=7.2.1",
+    "numpy>=1.26.4",
+    "pandas>=2.2.2",
+    "pyarrow>=17.0.0",
+    "fastparquet>=2024.5.0",
+    "matplotlib>=3.9.2",
+    "seaborn>=0.13.2",
+    "plotly>=5.24.1",
+    "scikit-learn>=1.5.2",
+    "scipy>=1.14.0",
+    "statsmodels>=0.14.2",
+    "rapidfuzz>=3.6.1",
+    "python-decouple>=3.8",
+    "ipynbname>=2024.1.0.0",
+    "xgboost>=3.2.0",
+    "lightgbm>=4.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11.2",
+    "nbqa>=1.9.0",
+    "pandas-stubs>=2.2.2",
+    "pre-commit>=3.8.0",
+    "ruff>=0.6.9",
+    "types-requests>=2.32.0",
+]
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".venv",
+    "venv",
+    ".mypy_cache",
+    ".ruff_cache",
+    "__pypackages__",
+    "*/tests/*.py",
+    "archive",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]  # errors, formatting, imports, bugbear, upgrades, security
+ignore = ["E203", "E402", "E501", "E701", "E731"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401", "F403"]
+"*.ipynb" = ["B007", "B018", "B023", "B905", "F811", "F821", "F841", "S110", "S301", "S311"]
+"tests/*.py" = ["S101"]
+
+[tool.mypy]
+check_untyped_defs = true
+follow_imports = "skip"
+ignore_missing_imports = true
+pretty = true
+show_error_codes = true
+show_error_context = true
+warn_redundant_casts = true
+exclude = [".venv/*", "tests"]

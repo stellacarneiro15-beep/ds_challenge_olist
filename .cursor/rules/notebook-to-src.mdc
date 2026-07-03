@@ -1,0 +1,51 @@
+---
+description: Prototype logic as functions in notebooks, then promote them to src/ modules
+alwaysApply: true
+---
+
+# Notebook → src workflow
+
+All reusable logic must be written as **functions** (`def ...`), never as loose
+top-level notebook code. Prototype the function inside the notebook, then
+promote the exact same function to a `.py` module under `src/`.
+
+## Rules
+
+- In notebooks (`notebooks/*.ipynb`), wrap any non-trivial logic in a `def`.
+  Cells should mostly *call* functions, not contain long procedural blocks.
+- **Every function in `src/` must originate from a notebook.** A function is
+  prototyped as a `def` in some `notebooks/*.ipynb`, and only then promoted to
+  a `src/*.py` module. Never introduce a function directly in `src/` that does
+  not exist in any notebook.
+- Only notebook-prototyped functions get transformed into `.py`. If it isn't in
+  a notebook, it doesn't belong in `src/`.
+- After promoting, `import` the function back into the notebook instead of
+  keeping a duplicate copy.
+- Keep the notebook and `src/` versions in sync: if you change the function in
+  one place, update the other. The `src/` copy is the source of truth.
+- Add/adjust a matching test in `tests/` when a function lands in `src/`.
+
+## Example
+
+```python
+# ❌ BAD — loose code in a notebook cell
+df["late"] = df["order_delivered_customer_date"] > df["order_estimated_delivery_date"]
+late_rate = df["late"].mean()
+print(late_rate)
+```
+
+```python
+# ✅ GOOD — define a function in the notebook...
+def compute_late_rate(df):
+    late = df["order_delivered_customer_date"] > df["order_estimated_delivery_date"]
+    return late.mean()
+
+compute_late_rate(df)
+```
+
+```python
+# ...then promote it to src/features.py and import it back
+from src.features import compute_late_rate
+
+compute_late_rate(df)
+```

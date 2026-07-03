@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv (optional workflow, alongside pyproject.toml)
+.uv/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ruff / Mypy / pytest cache
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# nbqa temp files
+*_nbqa_ipynb.py
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Generated outputs (not the raw dataset in data/)
+outputs/
+figures/
+
+# Claude / Cowork
+.claude/
