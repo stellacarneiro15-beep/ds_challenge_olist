@@ -1,6 +1,6 @@
 # ds_challenge_olist
 
-Data-science challenge on the [Olist Brazilian e-commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce).
+Data-science challenge on the Olist Brazilian e-commerce dataset.
 
 The notebooks keep the exploratory analysis, model comparison, plots, and feature-selection experiments. The `src/` package is intentionally limited to the code needed to run:
 
@@ -8,23 +8,13 @@ The notebooks keep the exploratory analysis, model comparison, plots, and featur
 python -m src.main --customer_id <ID> --top_k 5
 ```
 
-## Private Sharing
+## Public Repository
 
-This repository is private. For private-only review, invite the reviewer to the
-GitHub repository with read access, or create a ZIP archive and share it through
-a restricted file-sharing link:
+This repository is public. Share the GitHub repository URL directly with reviewers
+or collaborators.
 
-```bash
-make share-archive
-```
-
-The archive is written to `dist/ds_challenge_olist_private_share.zip`. Upload it
-to a private folder or restricted link, and grant access only to the intended
-reviewer.
-
-Third-party notebook viewers such as nbviewer and Colab cannot reliably open
-notebooks from this private repository unless the reviewer has authenticated
-access.
+Notebooks can be viewed directly on GitHub. If GitHub's notebook preview is slow
+or unavailable, reviewers can clone the repository and open the notebooks locally.
 
 ## Project Structure
 
@@ -61,13 +51,17 @@ After that, choose one of the setup options below.
 
 ### Option 1: Local Setup With Make
 
-Use this option if you want to run the project directly on your machine. The project requires Python 3.11 or newer.
+Use this option if you want to run the project directly on your machine. The project requires a Python 3.11+ interpreter installed on your machine.
+
+Use the exact command for your installed Python version. For example, if `python3.14 --version` works:
 
 ```bash
-python3.11 -m venv .venv
+python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+If your machine has a different supported version, replace `python3.14` with that command, such as `python3.13`, `python3.12`, or `python3.11`.
 
 Or:
 
@@ -75,7 +69,7 @@ Or:
 make setup
 ```
 
-`make setup` automatically picks an available `python3.14`, `python3.13`, `python3.12`, or `python3.11`. If your interpreter has a different name, run `make setup VENV_PYTHON=/path/to/python3.11`.
+Any Python version from 3.11 upward works. `make setup` automatically picks an available `python3.14`, `python3.13`, `python3.12`, or `python3.11`. If your interpreter has a different name, run `make setup VENV_PYTHON=/path/to/python3.11+`.
 
 Run a prediction:
 
