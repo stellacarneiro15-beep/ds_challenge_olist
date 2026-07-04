@@ -60,13 +60,22 @@ Recommended setup:
 make setup
 ```
 
-`make setup` uses `uv` to create or repair `.venv` with Python 3.11 and install all
-packages from `requirements.txt`, including `pandas`. If Python 3.11 is not
-already installed, `uv` downloads it automatically. If you do not have `uv`,
-install it first:
+`make setup` checks required native dependencies, then uses `uv` to create or
+repair `.venv` with Python 3.11 and install all packages from
+`requirements.txt`, including `pandas`. If Python 3.11 is not already installed,
+`uv` downloads it automatically.
+
+On macOS, install `uv` and the OpenMP runtime used by XGBoost and LightGBM:
 
 ```bash
-brew install uv
+brew install uv libomp
+```
+
+On Linux and Windows, install `uv` with the official installer or package
+manager for your platform:
+
+```bash
+https://docs.astral.sh/uv/getting-started/installation/
 ```
 
 To use a different supported Python version:
@@ -179,6 +188,14 @@ Then retry the command. If you are running commands directly with `python`,
 activate the environment first with `source .venv/bin/activate`. If you are
 using VS Code or Jupyter, select the interpreter/kernel from `.venv` so
 notebooks and scripts use the same environment.
+
+If you see `Library not loaded: @rpath/libomp.dylib` while importing XGBoost or
+LightGBM on macOS, install the missing OpenMP runtime and rerun setup:
+
+```bash
+brew install libomp
+make setup
+```
 
 ## Production Flow
 

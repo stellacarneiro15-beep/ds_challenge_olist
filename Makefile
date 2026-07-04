@@ -25,12 +25,12 @@ NOTEBOOKS := \
 	notebooks/02_delivery_feature_exploration.ipynb \
 	notebooks/02_model.ipynb
 
-.PHONY: help setup notebooks docker-build docker-notebooks run predict test share-archive clean
+.PHONY: help setup check-native-deps notebooks docker-build docker-notebooks run predict test share-archive clean
 
 help:
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "  setup      Create .venv with Python $(PYTHON_VERSION) and install requirements.txt"
+	@echo "  setup      Check native deps, create .venv, and install requirements.txt"
 	@echo "  notebooks  Execute all notebooks in order (jupyter nbconvert)"
 	@echo "  docker-build      Build the Docker image"
 	@echo "  docker-notebooks  Execute all notebooks inside Docker"
@@ -44,7 +44,26 @@ help:
 # SETUP
 # =============================================================================
 
-setup:
+check-native-deps:
+	@if [ "$$(uname -s)" = "Darwin" ]; then \
+		LIBOMP_DYLIB=""; \
+		if command -v brew >/dev/null 2>&1 && brew --prefix libomp >/dev/null 2>&1; then \
+			LIBOMP_DYLIB="$$(brew --prefix libomp)/lib/libomp.dylib"; \
+		fi; \
+		if [ ! -f "$$LIBOMP_DYLIB" ] && \
+			[ ! -f "/opt/homebrew/opt/libomp/lib/libomp.dylib" ] && \
+			[ ! -f "/usr/local/opt/libomp/lib/libomp.dylib" ]; then \
+			echo "Error: libomp is required by xgboost/lightgbm on macOS."; \
+			if command -v brew >/dev/null 2>&1; then \
+				echo "Install it with: brew install libomp"; \
+			else \
+				echo "Install Homebrew, then run: brew install libomp"; \
+			fi; \
+			exit 1; \
+		fi; \
+	fi
+
+setup: check-native-deps
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
 		echo "Error: uv is required so make setup can install/manage Python automatically."; \
 		echo "Install uv first: https://docs.astral.sh/uv/getting-started/installation/"; \
