@@ -24,7 +24,7 @@ The descriptive notebook compares review score against both absolute wait time a
 
 The notebook's key interpretation is a cliff at the promised date: early or on-time orders sit around 4.2-4.3 stars, but scores drop to about 3.5 when 0-5 days late, about 1.9 when 5-10 days late, and about 1.7 beyond that.
 
-Where to find it: `notebooks/01_descriptive_analytics.ipynb`, `Insight 4 - the broken promise that hurts`.
+Where to find it: `notebooks/01_descriptive_analytics.ipynb`, `Insight 4 - Missed delivery promises hurt more than long waits`.
 
 ## 4. The coded model is a leakage-safe risk ranker
 
