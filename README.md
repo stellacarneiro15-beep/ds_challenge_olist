@@ -199,6 +199,6 @@ make setup
 
 ## Production Flow
 
-The CLI loads the raw Olist CSVs, builds one row per delivered order, loads `artifacts/late_delivery_model.pkl` when available, trains the production gradient-boosting model if needed, selects an F1-oriented operating threshold on a chronological validation slice, and prints the customer's highest-risk delivered orders.
+The CLI loads the raw Olist CSVs, builds one row per delivered order, loads `artifacts/late_delivery_model.pkl` when available, trains the production XGBoost model if needed, selects an F1-oriented operating threshold on a chronological validation slice, and prints the customer's highest-risk delivered orders.
 
 Only purchase-time information is used as model input. Post-purchase timestamps such as carrier delivery and customer delivery dates are excluded from features; the customer delivery date is used only to create the historical `late` target.

@@ -9,10 +9,10 @@ from typing import Any, Protocol
 
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
+from xgboost import XGBClassifier
 
 from src.evaluate import best_f1_threshold, time_based_split
 from src.features import (
@@ -27,6 +27,7 @@ from src.features import (
 DEFAULT_MODEL_PATH = Path("artifacts/late_delivery_model.pkl")
 DEFAULT_THRESHOLD = 0.5
 THRESHOLD_VALIDATION_FRACTION = 0.2
+DEFAULT_SCALE_POS_WEIGHT = 1.0
 
 
 class SupportsPredictProba(Protocol):
@@ -60,20 +61,32 @@ def _preprocessor() -> ColumnTransformer:
     )
 
 
-def build_model_pipeline() -> Pipeline:
+def _negative_to_positive_ratio(target: pd.Series) -> float:
+    """Return the class-imbalance ratio used by XGBoost."""
+    positives = int((target == 1).sum())
+    negatives = int((target == 0).sum())
+    if positives == 0:
+        return DEFAULT_SCALE_POS_WEIGHT
+    return negatives / positives
+
+
+def build_model_pipeline(scale_pos_weight: float = DEFAULT_SCALE_POS_WEIGHT) -> Pipeline:
     """Build the single model used by ``python -m src.main``."""
     return Pipeline(
         steps=[
             ("prep", _preprocessor()),
             (
                 "clf",
-                HistGradientBoostingClassifier(
-                    learning_rate=0.1,
-                    max_iter=300,
-                    max_depth=None,
-                    l2_regularization=1.0,
-                    class_weight="balanced",
+                XGBClassifier(
+                    n_estimators=500,
+                    learning_rate=0.05,
+                    max_depth=4,
+                    subsample=0.8,
+                    colsample_bytree=0.8,
+                    eval_metric="logloss",
+                    scale_pos_weight=scale_pos_weight,
                     random_state=42,
+                    n_jobs=-1,
                 ),
             ),
         ]
@@ -102,14 +115,18 @@ def train_model_artifact(dataset: pd.DataFrame) -> ModelArtifact:
 
     threshold = DEFAULT_THRESHOLD
     if train_set[TARGET_COLUMN].nunique() >= 2:
-        threshold_estimator = build_model_pipeline()
+        threshold_estimator = build_model_pipeline(
+            scale_pos_weight=_negative_to_positive_ratio(train_set[TARGET_COLUMN])
+        )
         threshold_estimator.fit(train_set[FEATURE_COLUMNS], train_set[TARGET_COLUMN])
         threshold = select_operating_threshold(threshold_estimator, validation_set)
 
-    estimator = build_model_pipeline()
+    estimator = build_model_pipeline(
+        scale_pos_weight=_negative_to_positive_ratio(dataset[TARGET_COLUMN])
+    )
     estimator.fit(dataset[FEATURE_COLUMNS], dataset[TARGET_COLUMN])
     return ModelArtifact(
-        model_name="gradient_boosting",
+        model_name="xgboost_scale_pos_weight",
         estimator=estimator,
         threshold=threshold,
     )

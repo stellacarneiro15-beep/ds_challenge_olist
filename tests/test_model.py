@@ -216,7 +216,10 @@ def test_train_model_artifact_carries_validation_threshold(monkeypatch):
     frame["estimated_delivery_days"] = np.linspace(10.0, 90.0, len(frame))
     frame[TARGET_COLUMN] = [0, 1] * 8 + [0, 0, 1, 1]
 
-    monkeypatch.setattr("src.model.build_model_pipeline", FitEstimatedDaysRiskModel)
+    monkeypatch.setattr(
+        "src.model.build_model_pipeline",
+        lambda scale_pos_weight=1.0: FitEstimatedDaysRiskModel(),
+    )
 
     artifact = train_model_artifact(frame)
 
