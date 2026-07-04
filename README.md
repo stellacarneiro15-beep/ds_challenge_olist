@@ -5,7 +5,7 @@ Data-science challenge on the Olist Brazilian e-commerce dataset.
 The notebooks keep the exploratory analysis, model comparison, plots, and feature-selection experiments. The `src/` package is intentionally limited to the code needed to run:
 
 ```bash
-python -m src.main --customer_id <ID> --top_k 5
+python -m src.main --customer_unique_id <ID> --top_k 5
 ```
 
 ## Public Repository
@@ -61,9 +61,9 @@ make setup
 ```
 
 `make setup` checks required native dependencies, then uses `uv` to create or
-repair `.venv` with Python 3.11 and install all packages from
-`requirements.txt`, including `pandas`. If Python 3.11 is not already installed,
-`uv` downloads it automatically.
+repair `.venv` with Python 3.11 and sync the environment from
+`pyproject.toml`/`uv.lock`. If Python 3.11 is not already installed, `uv`
+downloads it automatically.
 
 On macOS, install `uv` and the OpenMP runtime used by XGBoost and LightGBM:
 
@@ -84,14 +84,22 @@ To use a different supported Python version:
 make setup PYTHON_VERSION=3.12
 ```
 
-Manual setup also works if you already have a supported Python command
-installed. Replace `python3.14` with your installed version, such as
-`python3.13`, `python3.12`, or `python3.11`:
+Manual setup with `uv` also works if you already have a supported Python command
+installed. Replace `3.11` with another supported version if needed:
 
 ```bash
-python3.14 -m venv .venv
+uv sync --python 3.11
 source .venv/bin/activate
-pip install -r requirements.txt
+```
+
+If you need a pip-only fallback, `requirements.txt` mirrors the project runtime
+dependencies plus `pytest`:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m ensurepip --upgrade
+python -m pip install -r requirements.txt
 ```
 
 Run a prediction:
@@ -129,7 +137,7 @@ docker run --rm \
   -v "$(pwd):/app" \
   -w /app \
   ds-challenge-olist \
-  python -m src.main --customer_id <ID> --top_k 5
+  python -m src.main --customer_unique_id <ID> --top_k 5
 ```
 
 The notebooks can also be executed in Docker:
@@ -156,21 +164,21 @@ source .venv/bin/activate
 ```
 
 ```bash
-python -m src.main --customer_id 9ef432eb6251297304e76186b10a928d --top_k 5
+python -m src.main --customer_unique_id 8d50f5eadf50201ccdcedfb9e2ac8455 --top_k 5
 ```
 
 Optional flags:
 
 ```bash
-python -m src.main --customer_id <ID> --top_k 5 --data_dir ./data
-python -m src.main --customer_id <ID> --top_k 5 --retrain
-python -m src.main --customer_id <ID> --top_k 5 --model_path artifacts/late_delivery_model.pkl
+python -m src.main --customer_unique_id <ID> --top_k 5 --data_dir ./data
+python -m src.main --customer_unique_id <ID> --top_k 5 --retrain
+python -m src.main --customer_unique_id <ID> --top_k 5 --model_path artifacts/late_delivery_model.pkl
 ```
 
 Via Make:
 
 ```bash
-make run CUSTOMER_ID=<ID> TOP_K=5
+make run CUSTOMER_UNIQUE_ID=<ID> TOP_K=5
 make test
 ```
 
@@ -199,6 +207,6 @@ make setup
 
 ## Production Flow
 
-The CLI loads the raw Olist CSVs, builds one row per delivered order, loads `artifacts/late_delivery_model.pkl` when available, trains the production XGBoost model if needed, selects an F1-oriented operating threshold on a chronological validation slice, and prints the customer's highest-risk delivered orders.
+The CLI loads the raw Olist CSVs, builds one row per delivered order, loads `artifacts/late_delivery_model.pkl` when available, and trains the production model if needed. Training fits an XGBoost tree (with `scale_pos_weight` for the rare late class) on the earlier orders, wraps it in isotonic calibration so the reported risk is a real probability, and selects an F1-oriented operating threshold on the most-recent held-out orders using that same calibrated model. It then prints a customer's highest-risk delivered orders, ranked by calibrated risk. Orders are grouped by `customer_unique_id` (the person-level key), since Olist assigns a fresh `customer_id` to every order.
 
 Only purchase-time information is used as model input. Post-purchase timestamps such as carrier delivery and customer delivery dates are excluded from features; the customer delivery date is used only to create the historical `late` target.

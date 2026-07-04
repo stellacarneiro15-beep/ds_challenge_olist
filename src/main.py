@@ -1,7 +1,7 @@
 """CLI entrypoint for customer late-delivery risk scoring.
 
 Usage:
-    python -m src.main --customer_id <ID> --top_k 5
+    python -m src.main --customer_unique_id <ID> --top_k 5
 """
 
 from __future__ import annotations
@@ -29,9 +29,9 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description="Score Olist late-delivery risk")
     parser.add_argument(
-        "--customer_id",
+        "--customer_unique_id",
         required=True,
-        help="Customer ID to score",
+        help="Customer unique ID (person-level key) whose orders to score",
     )
     parser.add_argument(
         "--top_k",
@@ -83,14 +83,16 @@ def _load_or_train_artifact(
     return artifact
 
 
-def _print_predictions(predictions: pd.DataFrame, customer_id: str, threshold: float) -> None:
+def _print_predictions(
+    predictions: pd.DataFrame, customer_unique_id: str, threshold: float
+) -> None:
     if predictions.empty:
-        print(f"No delivered orders found for customer_id={customer_id!r}.")
+        print(f"No delivered orders found for customer_unique_id={customer_unique_id!r}.")
         return
 
     print(
         f"Top {len(predictions)} late-delivery risk predictions "
-        f"for customer_id={customer_id} (threshold={threshold:.3f}):"
+        f"for customer_unique_id={customer_unique_id} (threshold={threshold:.3f}):"
     )
     for i, row in enumerate(predictions.itertuples(index=False), start=1):
         print(
@@ -114,10 +116,10 @@ def main() -> None:
     predictions = score_customer_orders(
         artifact,
         dataset,
-        customer_id=args.customer_id,
+        customer_unique_id=args.customer_unique_id,
         top_k=args.top_k,
     )
-    _print_predictions(predictions, args.customer_id, artifact.threshold)
+    _print_predictions(predictions, args.customer_unique_id, artifact.threshold)
 
 
 if __name__ == "__main__":

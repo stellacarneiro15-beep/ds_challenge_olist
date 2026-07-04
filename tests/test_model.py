@@ -6,6 +6,7 @@ from src.evaluate import evaluate_classifier, time_based_split
 from src.features import (
     CATEGORICAL_FEATURES,
     CUSTOMER_ID_COLUMN,
+    CUSTOMER_UNIQUE_ID_COLUMN,
     FEATURE_COLUMNS,
     ORDER_ID_COLUMN,
     TARGET_COLUMN,
@@ -31,13 +32,6 @@ class EstimatedDaysRiskModel:
     def predict_proba(self, X):
         probabilities = np.clip(X["estimated_delivery_days"].to_numpy(dtype=float) / 100.0, 0, 1)
         return np.column_stack([1 - probabilities, probabilities])
-
-
-class FitEstimatedDaysRiskModel(EstimatedDaysRiskModel):
-    """Fittable version of the deterministic risk model used by artifact training."""
-
-    def fit(self, X, y):
-        return self
 
 
 def _toy_olist() -> OlistData:
@@ -141,10 +135,20 @@ def test_build_delivery_dataset_shape_and_target():
     df = build_delivery_dataset(_toy_olist())
 
     assert len(df) == 2
-    assert set([ORDER_ID_COLUMN, CUSTOMER_ID_COLUMN, TIME_COLUMN, TARGET_COLUMN, *FEATURE_COLUMNS]).issubset(df.columns)
+    assert set(
+        [
+            ORDER_ID_COLUMN,
+            CUSTOMER_ID_COLUMN,
+            CUSTOMER_UNIQUE_ID_COLUMN,
+            TIME_COLUMN,
+            TARGET_COLUMN,
+            *FEATURE_COLUMNS,
+        ]
+    ).issubset(df.columns)
     assert df[TARGET_COLUMN].tolist() == [0, 1]
     assert df[ORDER_ID_COLUMN].tolist() == ["o1", "o2"]
     assert df[CUSTOMER_ID_COLUMN].tolist() == ["c1", "c2"]
+    assert df[CUSTOMER_UNIQUE_ID_COLUMN].tolist() == ["u1", "u2"]
 
 
 def test_build_delivery_dataset_features_are_leakage_safe():
@@ -177,16 +181,19 @@ def test_production_pipeline_fits_and_scores():
     assert np.isfinite(probabilities).all()
 
 
-def test_score_customer_orders_returns_top_k_riskiest_orders():
-    df = pd.DataFrame({col: [0.0, 0.0, 0.0] for col in FEATURE_COLUMNS})
-    df["estimated_delivery_days"] = [10.0, 80.0, 50.0]
-    df["customer_state"] = ["SP", "SP", "RJ"]
-    df["seller_state"] = ["SP", "RJ", "RJ"]
-    df["payment_type"] = ["credit_card", "boleto", "credit_card"]
-    df[ORDER_ID_COLUMN] = ["low", "high", "other_customer"]
-    df[CUSTOMER_ID_COLUMN] = ["c1", "c1", "c2"]
-    df[TARGET_COLUMN] = [0, 1, 0]
-    df[TIME_COLUMN] = pd.date_range("2018-01-01", periods=3, freq="h")
+def test_score_customer_orders_ranks_a_persons_orders_by_customer_unique_id():
+    # One person (u1) with three orders, each with a distinct per-order customer_id,
+    # plus a second person (u2). Scoring must group by customer_unique_id.
+    df = pd.DataFrame({col: [0.0, 0.0, 0.0, 0.0] for col in FEATURE_COLUMNS})
+    df["estimated_delivery_days"] = [10.0, 80.0, 50.0, 90.0]
+    df["customer_state"] = ["SP", "SP", "SP", "RJ"]
+    df["seller_state"] = ["SP", "RJ", "SP", "RJ"]
+    df["payment_type"] = ["credit_card", "boleto", "credit_card", "boleto"]
+    df[ORDER_ID_COLUMN] = ["low", "high", "mid", "other_person"]
+    df[CUSTOMER_ID_COLUMN] = ["c1", "c2", "c3", "c4"]
+    df[CUSTOMER_UNIQUE_ID_COLUMN] = ["u1", "u1", "u1", "u2"]
+    df[TARGET_COLUMN] = [0, 1, 1, 1]
+    df[TIME_COLUMN] = pd.date_range("2018-01-01", periods=4, freq="h")
 
     artifact = ModelArtifact(
         model_name="test_model",
@@ -194,11 +201,13 @@ def test_score_customer_orders_returns_top_k_riskiest_orders():
         threshold=0.6,
     )
 
-    scored = score_customer_orders(artifact, df, customer_id="c1", top_k=1)
+    scored = score_customer_orders(artifact, df, customer_unique_id="u1", top_k=5)
 
-    assert scored[ORDER_ID_COLUMN].tolist() == ["high"]
-    assert scored["late_delivery_risk"].tolist() == [0.8]
-    assert scored["predicted_late"].tolist() == [1]
+    # top_k > 1 now returns all of the person's orders, ranked by risk descending.
+    assert scored[ORDER_ID_COLUMN].tolist() == ["high", "mid", "low"]
+    assert scored["late_delivery_risk"].tolist() == [0.8, 0.5, 0.1]
+    assert scored["predicted_late"].tolist() == [1, 0, 0]
+    assert "other_person" not in scored[ORDER_ID_COLUMN].tolist()
 
 
 def test_select_operating_threshold_uses_validation_f1():
@@ -211,19 +220,35 @@ def test_select_operating_threshold_uses_validation_f1():
     assert threshold == 0.3
 
 
-def test_train_model_artifact_carries_validation_threshold(monkeypatch):
-    frame = _synthetic_modeling_frame(n=20)
-    frame["estimated_delivery_days"] = np.linspace(10.0, 90.0, len(frame))
-    frame[TARGET_COLUMN] = [0, 1] * 8 + [0, 0, 1, 1]
+def test_train_model_artifact_returns_calibrated_estimator_and_held_out_threshold():
+    from sklearn.calibration import CalibratedClassifierCV
 
-    monkeypatch.setattr(
-        "src.model.build_model_pipeline",
-        lambda scale_pos_weight=1.0: FitEstimatedDaysRiskModel(),
-    )
+    frame = _synthetic_modeling_frame(n=200)
 
     artifact = train_model_artifact(frame)
 
-    assert np.isclose(artifact.threshold, 0.8578947368421052)
+    # The shipped estimator is calibrated, so predict_proba is a real probability
+    # and the threshold is chosen on that exact estimator.
+    assert isinstance(artifact.estimator, CalibratedClassifierCV)
+    assert artifact.model_name.endswith("isotonic")
+    assert 0.0 <= artifact.threshold <= 1.0
+
+    proba = artifact.estimator.predict_proba(frame[FEATURE_COLUMNS])[:, 1]
+    assert proba.shape == (len(frame),)
+    assert np.isfinite(proba).all()
+    assert ((proba >= 0.0) & (proba <= 1.0)).all()
+
+
+def test_train_model_artifact_falls_back_when_a_fold_is_single_class():
+    # Threshold fold (last 20%) is all late -> cannot calibrate/tune; expect the
+    # uncalibrated fallback with the default threshold.
+    frame = _synthetic_modeling_frame(n=100)
+    frame[TARGET_COLUMN] = [0, 1] * 40 + [1] * 20
+
+    artifact = train_model_artifact(frame)
+
+    assert artifact.model_name == "xgboost_scale_pos_weight"
+    assert artifact.threshold == 0.5
 
 
 def test_model_artifact_roundtrip(tmp_path):

@@ -15,8 +15,8 @@ DATA_DIR ?= data
 DOCKER_IMAGE ?= ds-challenge-olist
 SHARE_ARCHIVE ?= dist/ds_challenge_olist_private_share.zip
 
-# Prediction CLI parameters (make run CUSTOMER_ID=<ID> [TOP_K=5])
-CUSTOMER_ID ?=
+# Prediction CLI parameters (make run CUSTOMER_UNIQUE_ID=<ID> [TOP_K=5])
+CUSTOMER_UNIQUE_ID ?=
 TOP_K ?= 5
 
 # Notebooks executed in order by `make notebooks`
@@ -34,8 +34,8 @@ help:
 	@echo "  notebooks  Execute all notebooks in order (jupyter nbconvert)"
 	@echo "  docker-build      Build the Docker image"
 	@echo "  docker-notebooks  Execute all notebooks inside Docker"
-	@echo "  run        Score a customer (make run CUSTOMER_ID=<ID> [TOP_K=5])"
-	@echo "  predict    Score a customer (make predict CUSTOMER_ID=<ID> [TOP_K=5])"
+	@echo "  run        Score a customer (make run CUSTOMER_UNIQUE_ID=<ID> [TOP_K=5])"
+	@echo "  predict    Score a customer (make predict CUSTOMER_UNIQUE_ID=<ID> [TOP_K=5])"
 	@echo "  test       Run the test suite (pytest)"
 	@echo "  share-archive  Build a private ZIP archive from the committed repo"
 	@echo "  clean      Remove venv, caches, and __pycache__"
@@ -72,7 +72,7 @@ setup: check-native-deps
 	@if [ ! -x "$(PYTHON)" ] || ! "$(PYTHON)" -c 'import sys; expected = "$(PYTHON_VERSION)".split(".")[:2]; actual = [str(sys.version_info.major), str(sys.version_info.minor)]; sys.exit(0 if actual == expected else 1)' >/dev/null 2>&1; then \
 		$(UV) venv --python $(PYTHON_VERSION) --clear $(VENV); \
 	fi
-	$(UV) pip install --python $(PYTHON) -r requirements.txt
+	$(UV) sync --frozen --python $(PYTHON_VERSION)
 	$(PYTHON) -c 'import pandas, sys; print(f"Setup complete. Python {sys.version.split()[0]} with pandas {pandas.__version__}.")'
 
 # =============================================================================
@@ -100,18 +100,18 @@ docker-notebooks: docker-build
 # =============================================================================
 
 run: setup
-	@if [ -z "$(CUSTOMER_ID)" ]; then \
-		echo "Error: CUSTOMER_ID is required. Usage: make run CUSTOMER_ID=<ID> [TOP_K=5]"; \
+	@if [ -z "$(CUSTOMER_UNIQUE_ID)" ]; then \
+		echo "Error: CUSTOMER_UNIQUE_ID is required. Usage: make run CUSTOMER_UNIQUE_ID=<ID> [TOP_K=5]"; \
 		exit 1; \
 	fi
-	DATA_DIR=$(DATA_DIR) $(PYTHON) -m src.main --customer_id $(CUSTOMER_ID) --top_k $(TOP_K)
+	DATA_DIR=$(DATA_DIR) $(PYTHON) -m src.main --customer_unique_id $(CUSTOMER_UNIQUE_ID) --top_k $(TOP_K)
 
 predict: setup
-	@if [ -z "$(CUSTOMER_ID)" ]; then \
-		echo "Error: CUSTOMER_ID is required. Usage: make predict CUSTOMER_ID=<ID> [TOP_K=5]"; \
+	@if [ -z "$(CUSTOMER_UNIQUE_ID)" ]; then \
+		echo "Error: CUSTOMER_UNIQUE_ID is required. Usage: make predict CUSTOMER_UNIQUE_ID=<ID> [TOP_K=5]"; \
 		exit 1; \
 	fi
-	DATA_DIR=$(DATA_DIR) $(PYTHON) -m src.main --customer_id $(CUSTOMER_ID) --top_k $(TOP_K)
+	DATA_DIR=$(DATA_DIR) $(PYTHON) -m src.main --customer_unique_id $(CUSTOMER_UNIQUE_ID) --top_k $(TOP_K)
 
 test: setup
 	$(PYTHON) -m pytest -q

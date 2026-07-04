@@ -6,6 +6,13 @@ Target
 delivery date, else 0. We keep only orders with `order_status == "delivered"`
 that have both a real delivery date and an estimated date.
 
+We treat `order_estimated_delivery_date` as a hard deadline (the "limit"): the
+order must be delivered *up to* that instant. Since the estimate is stored at
+midnight (00:00) of the promised day, any delivery after that instant counts as
+late, including deliveries later on the same calendar day. This is a deliberate
+choice to read the estimate as "deliver by this date/time", not "any time on
+this date is fine".
+
 Leakage policy
 --------------
 Every feature must be knowable at **purchase time**, because the intended use
@@ -62,7 +69,11 @@ FEATURE_COLUMNS: list[str] = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 TARGET_COLUMN = "late"
 TIME_COLUMN = "order_purchase_timestamp"
 ORDER_ID_COLUMN = "order_id"
+# `customer_id` is a per-order key in Olist (one row per order), so it cannot be
+# used to group a person's orders. `customer_unique_id` is the stable person-level
+# identifier and is what scoring/aggregation must key on.
 CUSTOMER_ID_COLUMN = "customer_id"
+CUSTOMER_UNIQUE_ID_COLUMN = "customer_unique_id"
 
 _EARTH_RADIUS_KM = 6371.0
 
@@ -194,6 +205,10 @@ def build_delivery_dataset(data: OlistData) -> pd.DataFrame:
     ].copy()
 
     # --- Target ---
+    # `order_estimated_delivery_date` is treated as the delivery deadline/limit
+    # (stored at midnight of the promised day). A strict `>` comparison flags any
+    # delivery after that instant as late, so same-day deliveries after 00:00 also
+    # count as late by design.
     df[TARGET_COLUMN] = (
         df["order_delivered_customer_date"] > df["order_estimated_delivery_date"]
     ).astype(int)
@@ -220,7 +235,14 @@ def build_delivery_dataset(data: OlistData) -> pd.DataFrame:
 
     # --- Geography: customer & primary-seller states + centroid distance ---
     df = df.merge(
-        data.customers[["customer_id", "customer_state", "customer_zip_code_prefix"]],
+        data.customers[
+            [
+                "customer_id",
+                "customer_unique_id",
+                "customer_state",
+                "customer_zip_code_prefix",
+            ]
+        ],
         on="customer_id",
         how="left",
     )
@@ -247,5 +269,12 @@ def build_delivery_dataset(data: OlistData) -> pd.DataFrame:
     )
     df["geo_distance_km"] = _haversine_km(df["c_lat"], df["c_lng"], df["s_lat"], df["s_lng"])
 
-    keep = [ORDER_ID_COLUMN, CUSTOMER_ID_COLUMN, TIME_COLUMN, TARGET_COLUMN, *FEATURE_COLUMNS]
+    keep = [
+        ORDER_ID_COLUMN,
+        CUSTOMER_ID_COLUMN,
+        CUSTOMER_UNIQUE_ID_COLUMN,
+        TIME_COLUMN,
+        TARGET_COLUMN,
+        *FEATURE_COLUMNS,
+    ]
     return df[keep].sort_values(TIME_COLUMN).reset_index(drop=True)

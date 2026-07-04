@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
@@ -18,6 +19,7 @@ from src.evaluate import best_f1_threshold, time_based_split
 from src.features import (
     CATEGORICAL_FEATURES,
     CUSTOMER_ID_COLUMN,
+    CUSTOMER_UNIQUE_ID_COLUMN,
     FEATURE_COLUMNS,
     NUMERIC_FEATURES,
     ORDER_ID_COLUMN,
@@ -28,6 +30,11 @@ DEFAULT_MODEL_PATH = Path("artifacts/late_delivery_model.pkl")
 DEFAULT_THRESHOLD = 0.5
 THRESHOLD_VALIDATION_FRACTION = 0.2
 DEFAULT_SCALE_POS_WEIGHT = 1.0
+# `scale_pos_weight` optimises the tree for the rare late class but leaves the raw
+# scores badly miscalibrated (they run ~6x the true late rate). We therefore wrap
+# the fitted tree in isotonic calibration so `predict_proba` is an honest
+# probability that can be surfaced to users as a real late-delivery risk.
+CALIBRATION_METHOD = "isotonic"
 
 
 class SupportsPredictProba(Protocol):
@@ -106,27 +113,64 @@ def select_operating_threshold(
     return threshold
 
 
+def _fit_calibrated_pipeline(
+    features: pd.DataFrame,
+    target: pd.Series,
+    scale_pos_weight: float,
+) -> CalibratedClassifierCV:
+    """Fit the weighted tree and wrap it in cross-validated isotonic calibration.
+
+    Calibration runs an internal CV over the *training* rows only, so the returned
+    estimator never sees the held-out threshold rows and its ``predict_proba`` is a
+    calibrated late-delivery probability rather than a `scale_pos_weight`-inflated
+    score.
+    """
+    base = build_model_pipeline(scale_pos_weight=scale_pos_weight)
+    calibrated = CalibratedClassifierCV(base, method=CALIBRATION_METHOD, cv=5)
+    calibrated.fit(features, target)
+    return calibrated
+
+
 def train_model_artifact(dataset: pd.DataFrame) -> ModelArtifact:
-    """Train the production model and carry forward a validation-selected threshold."""
-    train_set, validation_set = time_based_split(
+    """Train the calibrated production model and select its operating threshold.
+
+    The dataset is split chronologically. The model is trained and calibrated on
+    the earlier rows; the operating threshold is then chosen on the most-recent
+    held-out rows using the **exact estimator that ships**, so the threshold and
+    the probabilities it is applied to always come from the same model (the old
+    code tuned the threshold on a model trained on a subset, then shipped a
+    different model refit on all the data).
+    """
+    train_set, threshold_set = time_based_split(
         dataset,
         test_frac=THRESHOLD_VALIDATION_FRACTION,
     )
 
-    threshold = DEFAULT_THRESHOLD
-    if train_set[TARGET_COLUMN].nunique() >= 2:
-        threshold_estimator = build_model_pipeline(
-            scale_pos_weight=_negative_to_positive_ratio(train_set[TARGET_COLUMN])
+    # Calibration and F1-threshold selection both need both classes present in
+    # their respective folds. Fall back to an uncalibrated, default-threshold model
+    # trained on all rows when the split cannot support that.
+    if (
+        train_set[TARGET_COLUMN].nunique() < 2
+        or threshold_set[TARGET_COLUMN].nunique() < 2
+    ):
+        estimator = build_model_pipeline(
+            scale_pos_weight=_negative_to_positive_ratio(dataset[TARGET_COLUMN])
         )
-        threshold_estimator.fit(train_set[FEATURE_COLUMNS], train_set[TARGET_COLUMN])
-        threshold = select_operating_threshold(threshold_estimator, validation_set)
+        estimator.fit(dataset[FEATURE_COLUMNS], dataset[TARGET_COLUMN])
+        return ModelArtifact(
+            model_name="xgboost_scale_pos_weight",
+            estimator=estimator,
+            threshold=DEFAULT_THRESHOLD,
+        )
 
-    estimator = build_model_pipeline(
-        scale_pos_weight=_negative_to_positive_ratio(dataset[TARGET_COLUMN])
+    estimator = _fit_calibrated_pipeline(
+        train_set[FEATURE_COLUMNS],
+        train_set[TARGET_COLUMN],
+        scale_pos_weight=_negative_to_positive_ratio(train_set[TARGET_COLUMN]),
     )
-    estimator.fit(dataset[FEATURE_COLUMNS], dataset[TARGET_COLUMN])
+    threshold = select_operating_threshold(estimator, threshold_set)
     return ModelArtifact(
-        model_name="xgboost_scale_pos_weight",
+        model_name="xgboost_scale_pos_weight_isotonic",
         estimator=estimator,
         threshold=threshold,
     )
@@ -150,18 +194,24 @@ def load_model(path: str | Path = DEFAULT_MODEL_PATH) -> object:
 def score_customer_orders(
     artifact: ModelArtifact,
     dataset: pd.DataFrame,
-    customer_id: str,
+    customer_unique_id: str,
     top_k: int = 5,
 ) -> pd.DataFrame:
-    """Return the customer's highest-risk orders for late delivery."""
+    """Return a customer's highest-risk orders for late delivery.
+
+    Orders are grouped by ``customer_unique_id`` (the person-level key). Grouping
+    by ``customer_id`` would be a no-op, since Olist assigns a fresh ``customer_id``
+    to every order, so a customer would never have more than one row to rank.
+    """
     if top_k < 1:
         raise ValueError("top_k must be at least 1.")
 
     customer_rows = dataset[
-        dataset[CUSTOMER_ID_COLUMN].astype(str) == str(customer_id)
+        dataset[CUSTOMER_UNIQUE_ID_COLUMN].astype(str) == str(customer_unique_id)
     ].copy()
     columns = [
         ORDER_ID_COLUMN,
+        CUSTOMER_UNIQUE_ID_COLUMN,
         CUSTOMER_ID_COLUMN,
         "late_delivery_risk",
         "predicted_late",

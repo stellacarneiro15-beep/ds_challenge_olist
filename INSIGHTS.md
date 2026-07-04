@@ -4,7 +4,7 @@ Source: Olist CSVs in `data/`, using delivered orders with a known customer deli
 
 ## 1. Late delivery is uncommon, but customer impact is severe
 
-Only 7,826 of 96,470 delivered orders were late, an 8.1% late rate. A naive model that always predicts "on time" would still be 91.9% accurate, but would catch zero late deliveries, so accuracy is not the right main metric.
+Using the timestamp-deadline target defined in `src/features.py`, 7,826 of 96,470 delivered orders were late, an 8.1% late rate. A naive model that always predicts "on time" would still be 91.9% accurate, but would catch zero late deliveries, so accuracy is not the right main metric.
 
 Reviews show the business cost clearly: late orders averaged 2.57 stars across 7,700 reviewed late deliveries, while on-time orders averaged 4.29 stars across 88,661 reviewed on-time deliveries. One-star reviews appeared on 46.2% of late orders versus 6.6% of on-time orders.
 
@@ -28,7 +28,7 @@ Where to find it: `notebooks/01_descriptive_analytics.ipynb`, `Insight 4 - the b
 
 ## 4. The coded model is a leakage-safe risk ranker
 
-The model notebook uses a chronological train/validation/test split: 61,740 train rows, 15,436 validation rows, and 19,294 test rows. The test late rate is 0.053, so the no-skill PR-AUC floor on that period is about 0.053 rather than the overall 8.1%.
+The model notebook uses a chronological train/validation/test split: 61,740 train rows, 15,436 validation rows, and 19,294 test rows. Under the same timestamp-deadline target, the test late rate is 0.053, so the no-skill PR-AUC floor on that period is about 0.053 rather than the overall 8.1%.
 
 In `src/model.py`, the shipped pipeline trains an `XGBClassifier` after numeric imputation, categorical imputation, and one-hot encoding. The feature table comes from `src/features.py` and excludes post-purchase carrier/customer delivery timestamps to avoid leakage.
 
