@@ -3,10 +3,13 @@
 # =============================================================================
 
 VENV := .venv
-VENV_PYTHON ?= $(shell for p in python3.14 python3.13 python3.12 python3.11; do command -v $$p >/dev/null 2>&1 && { echo $$p; exit; }; done; echo python3)
+UV ?= uv
+UV_CACHE_DIR ?= .uv-cache
+PYTHON_VERSION ?= 3.11
 PYTHON := $(VENV)/bin/python
-PIP := $(VENV)/bin/pip
 JUPYTER := $(VENV)/bin/jupyter
+
+export UV_CACHE_DIR
 
 DATA_DIR ?= data
 DOCKER_IMAGE ?= ds-challenge-olist
@@ -27,7 +30,7 @@ NOTEBOOKS := \
 help:
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "  setup      Create .venv and install requirements.txt"
+	@echo "  setup      Create .venv with Python $(PYTHON_VERSION) and install requirements.txt"
 	@echo "  notebooks  Execute all notebooks in order (jupyter nbconvert)"
 	@echo "  docker-build      Build the Docker image"
 	@echo "  docker-notebooks  Execute all notebooks inside Docker"
@@ -41,14 +44,17 @@ help:
 # SETUP
 # =============================================================================
 
-setup: $(VENV)/bin/activate
-
-$(VENV)/bin/activate: requirements.txt
-	$(VENV_PYTHON) -c 'import sys; sys.exit("Python >=3.11 is required; set VENV_PYTHON=/path/to/python3.11+") if sys.version_info < (3, 11) else None'
-	$(VENV_PYTHON) -m venv $(VENV)
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
-	touch $(VENV)/bin/activate
+setup:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+		echo "Error: uv is required so make setup can install/manage Python automatically."; \
+		echo "Install uv first: https://docs.astral.sh/uv/getting-started/installation/"; \
+		exit 1; \
+	fi
+	@if [ ! -x "$(PYTHON)" ] || ! "$(PYTHON)" -c 'import sys; expected = "$(PYTHON_VERSION)".split(".")[:2]; actual = [str(sys.version_info.major), str(sys.version_info.minor)]; sys.exit(0 if actual == expected else 1)' >/dev/null 2>&1; then \
+		$(UV) venv --python $(PYTHON_VERSION) --clear $(VENV); \
+	fi
+	$(UV) pip install --python $(PYTHON) -r requirements.txt
+	$(PYTHON) -c 'import pandas, sys; print(f"Setup complete. Python {sys.version.split()[0]} with pandas {pandas.__version__}.")'
 
 # =============================================================================
 # NOTEBOOKS
@@ -107,5 +113,5 @@ share-archive:
 	@echo "Share this ZIP through a restricted file-sharing link."
 
 clean:
-	rm -rf $(VENV) .pytest_cache .ruff_cache .mypy_cache
+	rm -rf $(VENV) $(UV_CACHE_DIR) .pytest_cache .ruff_cache .mypy_cache
 	find . -type d -name "__pycache__" -exec rm -rf {} +

@@ -13,6 +13,7 @@ env/
 
 # uv (optional workflow, alongside pyproject.toml)
 .uv/
+.uv-cache/
 
 # Environment variables
 .env

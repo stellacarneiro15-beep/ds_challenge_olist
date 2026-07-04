@@ -51,25 +51,39 @@ After that, choose one of the setup options below.
 
 ### Option 1: Local Setup With Make
 
-Use this option if you want to run the project directly on your machine. The project requires a Python 3.11+ interpreter installed on your machine.
+Use this option if you want to run the project directly on your machine. The
+project requires Python 3.11 or newer.
 
-Use the exact command for your installed Python version. For example, if `python3.14 --version` works:
+Recommended setup:
+
+```bash
+make setup
+```
+
+`make setup` uses `uv` to create or repair `.venv` with Python 3.11 and install all
+packages from `requirements.txt`, including `pandas`. If Python 3.11 is not
+already installed, `uv` downloads it automatically. If you do not have `uv`,
+install it first:
+
+```bash
+brew install uv
+```
+
+To use a different supported Python version:
+
+```bash
+make setup PYTHON_VERSION=3.12
+```
+
+Manual setup also works if you already have a supported Python command
+installed. Replace `python3.14` with your installed version, such as
+`python3.13`, `python3.12`, or `python3.11`:
 
 ```bash
 python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
-
-If your machine has a different supported version, replace `python3.14` with that command, such as `python3.13`, `python3.12`, or `python3.11`.
-
-Or:
-
-```bash
-make setup
-```
-
-Any Python version from 3.11 upward works. `make setup` automatically picks an available `python3.14`, `python3.13`, `python3.12`, or `python3.11`. If your interpreter has a different name, run `make setup VENV_PYTHON=/path/to/python3.11+`.
 
 Run a prediction:
 
@@ -126,6 +140,12 @@ make docker-notebooks DOCKER_IMAGE=my-olist-image DATA_DIR=data
 
 ## Usage
 
+Activate the virtual environment before running commands directly with `python`:
+
+```bash
+source .venv/bin/activate
+```
+
 ```bash
 python -m src.main --customer_id 9ef432eb6251297304e76186b10a928d --top_k 5
 ```
@@ -144,6 +164,21 @@ Via Make:
 make run CUSTOMER_ID=<ID> TOP_K=5
 make test
 ```
+
+## Troubleshooting
+
+If you see `ModuleNotFoundError: No module named 'pandas'`, the project
+dependencies are not installed in the Python environment currently running the
+code. From the project folder, run:
+
+```bash
+make setup
+```
+
+Then retry the command. If you are running commands directly with `python`,
+activate the environment first with `source .venv/bin/activate`. If you are
+using VS Code or Jupyter, select the interpreter/kernel from `.venv` so
+notebooks and scripts use the same environment.
 
 ## Production Flow
 
