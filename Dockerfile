@@ -20,10 +20,10 @@ RUN apt-get update \
 RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock ./
-COPY README.md ./
 
 RUN uv sync --frozen --no-dev --no-install-project
 
+COPY README.md ./
 COPY . .
 
 CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]

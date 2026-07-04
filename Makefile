@@ -25,7 +25,7 @@ NOTEBOOKS := \
 	notebooks/02_delivery_feature_exploration.ipynb \
 	notebooks/02_model.ipynb
 
-.PHONY: help setup check-native-deps notebooks docker-build docker-notebooks run predict test share-archive clean
+.PHONY: help setup check-native-deps notebooks docker-build docker-test docker-notebooks run predict test share-archive clean
 
 help:
 	@echo "Usage: make <target>"
@@ -33,6 +33,7 @@ help:
 	@echo "  setup      Check native deps, create .venv, and install requirements.txt"
 	@echo "  notebooks  Execute all notebooks in order (jupyter nbconvert)"
 	@echo "  docker-build      Build the Docker image"
+	@echo "  docker-test       Run the test suite inside Docker"
 	@echo "  docker-notebooks  Execute all notebooks inside Docker"
 	@echo "  run        Score a customer (make run CUSTOMER_UNIQUE_ID=<ID> [TOP_K=5])"
 	@echo "  predict    Score a customer (make predict CUSTOMER_UNIQUE_ID=<ID> [TOP_K=5])"
@@ -85,6 +86,14 @@ notebooks: setup
 
 docker-build:
 	docker build -t $(DOCKER_IMAGE) .
+
+docker-test: docker-build
+	docker run --rm \
+		-v "$(CURDIR):/app" \
+		-w /app \
+		-e DATA_DIR=/app/$(DATA_DIR) \
+		$(DOCKER_IMAGE) \
+		sh -lc 'uv sync --frozen && /opt/venv/bin/python -m pytest -q'
 
 docker-notebooks: docker-build
 	docker run --rm \

@@ -155,6 +155,12 @@ image name or data location if needed:
 make docker-notebooks DOCKER_IMAGE=my-olist-image DATA_DIR=data
 ```
 
+Run the test suite inside Docker:
+
+```bash
+make docker-test
+```
+
 ## Usage
 
 Activate the virtual environment before running commands directly with `python`:
